@@ -1,0 +1,14 @@
+Characteristic pullback:
+
+Current candle positive
+Previous candle negative
+Current candle higher than previous candle
+Previous candle make a local low 
+Sequence of previous candle negative
+Local High with a positive candle
+Local high greater than the current candle
+Sequence of previous cande positive
+
+Retracement between local high and lower local maximum 50%
+Lower local candle is a doji candle
+Climb high with speed
