@@ -1,19 +1,15 @@
-import pandas as pd
-import plotly.graph_objs as go
 import sqlite3
 import numpy as np
+import plotly.graph_objects as go
 from datetime import datetime
 from collections import OrderedDict
+import pandas as pd
 
-databaseConnection = sqlite3.connect("DukascopyEurUsd.db",detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
+databaseConnection = sqlite3.connect("./data/DukascopyEurUsd.db",detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
 databaseCursor = databaseConnection.cursor()
  
 # THICK TO OHLC
 dateFormat = '%Y%m%d %H%M%S%f'
-#dateparse = lambda x: datetime.strptime(x, dateFormat)
-#data_frame = pd.read_csv('DAT_ASCII_EURUSD_T_202001.csv', names=['Date_Time', 'Bid', 'Ask', 'Volume'], index_col=0, parse_dates=['Date_Time'], date_parser=dateparse)
-#data_frame = pd.read_csv('EURUSD_T_202001_o.csv', names=['Date_Time', 'Bid', 'Ask', 'Volume'], index_col=0, parse_dates=['Date_Time'], date_parser=dateparse)
-
 SQL_QUERY_GET_TICK = 'SELECT * FROM ticks WHERE time > "2019-01-01" AND time < "2019-01-31"'
 data_frame = pd.read_sql_query(SQL_QUERY_GET_TICK, databaseConnection, parse_dates={'time':dateFormat}, index_col='time')
 
@@ -21,12 +17,12 @@ data_ask =  data_frame['ask'].resample('30Min').ohlc()
 data_bid =  data_frame['bid'].resample('30Min').ohlc()
 
 # DISPLAY CANDLESTICK CHART
-chartData = go.Candlestick(
-                x=data_ask.axes[0],
-                open=data_bid['open'],
-                high=data_bid['high'],
-                low=data_bid['low'],     
-                           close=data_bid['close'])
+#chartData = go.Candlestick(
+#                x=data_ask.axes[0],
+#                open=data_bid['open'],
+#                high=data_bid['high'],
+#                low=data_bid['low'],     
+#                           close=data_bid['close'])
 
 #chart = go.Figure(data=chartData)
 #chart.show()
@@ -155,7 +151,7 @@ for index, row in data.iterrows():
 
 
     # Found a pullback pattern!
-    pullbackData = data[indexBullSequenceStart:indexRetracementEnd + 1]
+    pullbackData = data[indexBullSequenceStart:indexRetracementEnd + 3]
     pullbackDatas.append(np.array(
         [
             pullbackData,
@@ -164,6 +160,17 @@ for index, row in data.iterrows():
         ]
     ))
 
+    chartData = go.Candlestick(
+        x=data_ask.axes[0],
+        open=pullbackData['open'],
+        high=pullbackData['high'],
+        low=pullbackData['low'],     
+        close=pullbackData['close'])
+
+    chart = go.Figure(data=chartData)
+    chart.show()
+
+    
 print(sum(1 for t in pullbackDatas if t[2] == True))
 print(sum(1 for t in pullbackDatas if t[2] == False))
 
@@ -172,11 +179,11 @@ print(sum(1 for t in pullbackDatas if t[2] == False))
 #print(negativeCount)
 
 # Verify each pull back with a chart
-for pullback in pullbackDatas:
-    go.Candlestick(  
-        x=pullback[0].axes[0],
-        open=pullback[0]['open'],
-        high=pullback[0]['high'],
-        low=pullback[0]['low'],                
-        close=pullback[0]['close'])
-    go.Figure(data=pullback[0], ).show()
+#for pullback in pullbackDatas:
+#    go.Candlestick(  
+#        x=pullback[0].axes[0],
+#        open=pullback[0]['open'],
+#        high=pullback[0]['high'],
+#        low=pullback[0]['low'],                
+#        close=pullback[0]['close'])
+#    go.Figure(data=pullback[0], ).show()
