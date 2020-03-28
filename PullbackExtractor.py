@@ -1,136 +1,144 @@
+import enum
 import numpy as np
+
+
+class LabelPullbackId(enum.Enum):
+    SUCCESSFUL = 0
+    FAIL = 1
+
 
 class PullbackExtractor:
     def extract(self, data):
         # SEARCH FOR PULLBACK PATTERN
         # THIS ALGO SEARCH BACKWARD, A BIT WEIRD
         # Time move forward, for each candle, look backward if pattern is form.
-        pullbackDatas = []
-        indexBreakout = 0
-        i=0
-        realI=0
+        pullback_datas = []
+        index_breakout = 0
+        i = 0
+        real_i = 0
         for index, row in data.iterrows():
-            i = realI
-            realI += 1
+            i = real_i
+            real_i += 1
 
-            #print(data.iloc[i])
-            currentCandle = row
-            if i-1 < 0:
+            current_candle = row
+            if i - 1 < 0:
                 continue
-            previousCandle = data.iloc[i-1]
+            previous_candle = data.iloc[i - 1]
 
             # 1: Current candle positive
-            currentCandlePositive = currentCandle['open']-currentCandle['close']<=0
-            if currentCandlePositive == False:
+            current_candle_positive = current_candle['open'] - current_candle['close'] <= 0
+            if not current_candle_positive:
                 continue
 
             # 2: Previous candle negative
-            previousCandleNegative = previousCandle['open']-previousCandle['close']>=0
-            if previousCandleNegative == False:
+            previous_candle_negative = previous_candle['open'] - previous_candle['close'] >= 0
+            if not previous_candle_negative:
                 continue
 
             # 3: Current candle higher than previous candle
-            currentCandleHigherThanPrevious = currentCandle['close']>=previousCandle['open']
-            if currentCandleHigherThanPrevious == False:
+            current_candle_higher_than_previous = current_candle['close'] >= previous_candle['open']
+            if not current_candle_higher_than_previous:
                 continue
 
-            # 4; Previous candle make a local low. Compare with the candle before since I just check if the next candle id higher
-            previousCandleLocalLow = previousCandle['open']<= data.iloc[i-2]['close']
-            if previousCandleLocalLow == False:
+            # 4; Previous candle make a local low.
+            # Compare with the candle before since I just check if the next candle id higher
+            previous_candle_local_low = previous_candle['open'] <= data.iloc[i - 2]['close']
+            if not previous_candle_local_low:
                 continue
-
 
             # 5: Sequence of previous candle negative
-            indexRetracementEnd = i - 1
-            indexRetracementStart = -1
-            indexRetracement = indexRetracementEnd - 1
-            isSearchingRetracement = True
-            while isSearchingRetracement:
+            index_retracement_end = i - 1
+            index_retracement_start = -1
+            index_retracement = index_retracement_end - 1
+            is_searching_retracement = True
+            while is_searching_retracement:
                 # Get previous candle
-                retracementCandle = data.iloc[indexRetracement]
+                retracement_candle = data.iloc[index_retracement]
                 # Check if candle is negative
-                retracementCandleIsNegative = retracementCandle['open'] - retracementCandle['close'] > 0
-                if  retracementCandleIsNegative == False:
+                retracement_candle_is_negative = retracement_candle['open'] - retracement_candle['close'] > 0
+                if not retracement_candle_is_negative:
                     # todo can i transform the while with a while True and delete the isSearchingRetracement variable???
-                    isSearchingRetracement = False
+                    is_searching_retracement = False
                     break
-                # And higer then the next candle
-                nextRetracementCandle = data.iloc[indexRetracementEnd+1]
-                retracementCandleIsHigherThanNextCandle = retracementCandle['close'] >= nextRetracementCandle['open']
-                if retracementCandleIsHigherThanNextCandle == False:
-                    isSearchingRetracement = False
+                # And higher then the next candle
+                next_retracement_candle = data.iloc[index_retracement_end + 1]
+                retracement_candle_is_higher_than_next_candle = \
+                    retracement_candle['close'] >= next_retracement_candle['open']
+                if not retracement_candle_is_higher_than_next_candle:
+                    is_searching_retracement = False
                     break
 
-                indexRetracementStart =  indexRetracement
-                indexRetracement -= 1
+                index_retracement_start = index_retracement
+                index_retracement -= 1
 
-            if indexRetracementStart == -1:
+            if index_retracement_start == -1:
                 continue
 
-            i = indexRetracementStart - 1
+            i = index_retracement_start - 1
 
             # 6: Candle is positive with local high
-            candleLocalHigh = data.iloc[i]
-            candleIsLocalHigh = candleLocalHigh['close'] >= data.iloc[i-1]['close']
-            if candleIsLocalHigh == False:
+            candle_local_high = data.iloc[i]
+            candle_is_local_high = candle_local_high['close'] >= data.iloc[i - 1]['close']
+            if not candle_is_local_high:
                 continue
-            candleLocalHighIsPositive = candleLocalHigh['open'] - candleLocalHigh['close'] < 0
-            if candleLocalHighIsPositive == False:
+            candle_local_high_is_positive = candle_local_high['open'] - candle_local_high['close'] < 0
+            if not candle_local_high_is_positive:
                 continue
 
-            i = i-1
+            i = i - 1
 
             # 7 Sequence of previous candle positive
-            indexBullSequenceEnd = i
-            indexBullSequenceStart = -1
-            indexBullSequence = i
-            isSearchingBull = True
-            while isSearchingBull:
-                candleBull = data.iloc[indexBullSequence]
+            index_bull_sequence_end = i
+            index_bull_sequence_start = -1
+            index_bull_sequence = i
+            is_searching_bull = True
+            while is_searching_bull:
+                candle_bull = data.iloc[index_bull_sequence]
 
                 # Candle is positive
-                candleIsPositive = candleBull['open'] - candleBull['close'] < 0
-                if candleIsPositive == False:
-                    isSearchingBull = False
+                candle_is_positive = candle_bull['open'] - candle_bull['close'] < 0
+                if not candle_is_positive:
+                    is_searching_bull = False
                     break
 
                 # Bullish movement
-                #isBullishMovement = candleBull['close'] < data.iloc[indexBullSequence + 1]
-                #if isBullishMovement == False:
+                # isBullishMovement = candleBull['close'] < data.iloc[indexBullSequence + 1]
+                # if isBullishMovement == False:
                 #    isSearchingBull = False
                 #    break
 
-                indexBullSequenceStart = indexBullSequence
-                indexBullSequence -= 1
+                index_bull_sequence_start = index_bull_sequence
+                index_bull_sequence -= 1
 
-            if indexBullSequenceStart == -1:
+            if index_bull_sequence_start == -1:
                 continue
 
             # Retracement does not exceed 100% of pullback
-            if data.iloc[indexRetracementEnd]['close'] < data.iloc[indexBullSequenceStart]['low']:
+            if data.iloc[index_retracement_end]['close'] < data.iloc[index_bull_sequence_start]['low']:
                 continue
 
             # 9 - Breakout define by target price higher than the pullback high
-            indexBreakout = realI
-            candleBreakoutIsGratherThanHighPullback = False
+            index_breakout = real_i
+            candle_breakout_is_greater_than_high_pullback = False
             while True:
-                candleBreakout = data.iloc[indexBreakout]
-                if candleBreakout['open'] - candleBreakout['close'] > 0:
-                    indexBreakout -= 1
+                candle_breakout = data.iloc[index_breakout]
+                if candle_breakout['open'] - candle_breakout['close'] > 0:
+                    index_breakout -= 1
                     break
 
-                candleBreakoutIsGratherThanHighPullback = candleBreakout['close'] >= data.iloc[indexRetracementStart - 1]['close']
-                indexBreakout += 1
+                candle_breakout_is_greater_than_high_pullback = candle_breakout['close'] >= \
+                                                                data.iloc[index_retracement_start - 1]['close']
+                # LabelPullbackId label =
 
-
+                index_breakout += 1
 
             # Found a pullback pattern!
-            pullbackData = data[indexBullSequenceStart:indexRetracementEnd + 3]
-            pullbackDatas.append(np.array(
+            pullback_data = data[index_bull_sequence_start:index_retracement_end + 3]
+            pullback_datas.append(np.array(
                 [
-                    pullbackData,
-                    data.iloc[indexBreakout],
-                    candleBreakoutIsGratherThanHighPullback
+                    pullback_data,
+                    data.iloc[index_breakout],
+                    candle_breakout_is_greater_than_high_pullback
                 ]
             ))
-        return pullbackDatas
+        return pullback_datas

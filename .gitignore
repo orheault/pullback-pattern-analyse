@@ -1,5 +1,12 @@
 MNIST/
 Saved\ to\ db/
 Ticks/
-.vscode/
 DukascopyEurUsd.db
+
+
+# virtualenv
+.venv
+venv/
+ENV/
+
+__pycache__/
