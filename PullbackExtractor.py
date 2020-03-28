@@ -1,10 +1,6 @@
-import enum
+from LabelPullback import LabelPullback
 import numpy as np
-
-
-class LabelPullbackId(enum.Enum):
-    SUCCESSFUL = 0
-    FAIL = 1
+from Pullback import Pullback
 
 
 class PullbackExtractor:
@@ -58,14 +54,12 @@ class PullbackExtractor:
                 retracement_candle_is_negative = retracement_candle['open'] - retracement_candle['close'] > 0
                 if not retracement_candle_is_negative:
                     # todo can i transform the while with a while True and delete the isSearchingRetracement variable???
-                    is_searching_retracement = False
                     break
                 # And higher then the next candle
                 next_retracement_candle = data.iloc[index_retracement_end + 1]
                 retracement_candle_is_higher_than_next_candle = \
                     retracement_candle['close'] >= next_retracement_candle['open']
                 if not retracement_candle_is_higher_than_next_candle:
-                    is_searching_retracement = False
                     break
 
                 index_retracement_start = index_retracement
@@ -120,6 +114,7 @@ class PullbackExtractor:
             # 9 - Breakout define by target price higher than the pullback high
             index_breakout = real_i
             candle_breakout_is_greater_than_high_pullback = False
+            label = LabelPullback.FAIL
             while True:
                 candle_breakout = data.iloc[index_breakout]
                 if candle_breakout['open'] - candle_breakout['close'] > 0:
@@ -128,17 +123,13 @@ class PullbackExtractor:
 
                 candle_breakout_is_greater_than_high_pullback = candle_breakout['close'] >= \
                                                                 data.iloc[index_retracement_start - 1]['close']
-                # LabelPullbackId label =
+                if candle_breakout_is_greater_than_high_pullback:
+                    label = LabelPullback.SUCCESSFUL
 
                 index_breakout += 1
 
             # Found a pullback pattern!
             pullback_data = data[index_bull_sequence_start:index_retracement_end + 3]
-            pullback_datas.append(np.array(
-                [
-                    pullback_data,
-                    data.iloc[index_breakout],
-                    candle_breakout_is_greater_than_high_pullback
-                ]
-            ))
+            pullback_datas.append(Pullback(pullback_data, data.iloc[index_breakout], label))
+
         return pullback_datas
