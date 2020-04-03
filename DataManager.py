@@ -11,6 +11,6 @@ class DataManager:
         self.databaseCursor = self.databaseConnection.cursor()
 
     def retrieve_tick(self):
-        sql_query_get_tick = 'SELECT * FROM ticks WHERE time > "2019-01-01" AND time < "2019-01-31"'
+        sql_query_get_tick = 'SELECT * FROM ticks WHERE time > "2019-01-01" AND time < "2019-01-15"'
         return pd.read_sql_query(sql_query_get_tick, self.databaseConnection,
                                  parse_dates={'time': DataManager.DATE_FORMAT}, index_col='time')

@@ -1,6 +1,5 @@
 import torch
 import torchvision
-import matplotlib.pyplot as plt
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -91,7 +90,4 @@ with torch.no_grad():
                 correct += 1
             total += 1
 print("Accuracy: ", round(correct/total, 3))
-
-plt.imshow(X[1].view(28,28))
-plt.show()
 print(torch.argmax(net(X[1].view(-1,784))[0]))
