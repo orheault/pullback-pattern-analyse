@@ -135,7 +135,12 @@ class PullbackExtractor:
             pullback = Pullback()
             pullback.set_label(label)
             pullback.set_ohlc_total_size(pullback_data_bid.size)
-            pullback.set_total_volume(pullback_data_volume["bidVolume"].sum())
+
+            bid_volume_sum = 0
+            if pullback_data_volume.size > 0:
+                bid_volume_sum = pullback_data_volume["bidVolume"].sum()
+            pullback.set_total_volume(bid_volume_sum)
+
             pullback.set_ohlc_bullish_size(index_bull_sequence_end - index_bull_sequence_start)
 
             bullish_volume_data = pullback_data_volume[0:index_bull_sequence_end - index_bull_sequence_start]
@@ -146,17 +151,24 @@ class PullbackExtractor:
             pullback.set_bullish_volume(bullish_volume_value)
 
             pullback.set_ohlc_retracement_size(pullback_data_bid[index_retracement_start:index_retracement_end].size)
-            pullback.set_retracement_volume(
-                pullback_data_volume[index_retracement_start - index_bull_sequence_start:index_retracement_end][
-                    "bidVolume"].sum())
+
+            retracement_volume = 0
+            if pullback_data_volume[index_retracement_start - index_bull_sequence_start:index_retracement_end].size > 0:
+                retracement_volume = \
+                    pullback_data_volume[index_retracement_start - index_bull_sequence_start:index_retracement_end][
+                        "bidVolume"].sum()
+
+            pullback.set_retracement_volume(retracement_volume)
+
             pullback.set_retracement_percentage(abs(
                 (pullback_data_bid.iloc[0]["high"] -
                  pullback_data_bid.iloc[index_retracement_end - index_retracement_start]["high"]) / (
                         pullback_data_bid.iloc[index_bull_sequence_end - index_retracement_start]["high"] -
                         pullback_data_bid.iloc[0]["low"])))
-            pullback.set_retracement_low_price(pullback_data_bid.iloc[index_retracement_end- index_retracement_start]["low"])
+            pullback.set_retracement_low_price(
+                pullback_data_bid.iloc[index_retracement_end - index_retracement_start]["low"])
             pullback.set_start_price(pullback_data_bid.iloc[0]["low"])
-            pullback.set_high_price(pullback_data_bid.iloc[index_bull_sequence_end- index_retracement_start]['high'])
+            pullback.set_high_price(pullback_data_bid.iloc[index_bull_sequence_end - index_retracement_start]['high'])
             pullback_datas.append(pullback)
 
         return pullback_datas

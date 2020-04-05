@@ -1,7 +1,7 @@
 import numpy as np
 import plotly.graph_objects as go
-import torch
-from torch import optim
+import tensorflow as tf
+from tensorflow import keras
 from PullbackExtractor import *
 from DataManager import *
 
@@ -41,8 +41,8 @@ def prepare_data(data_unprocess):
                     pullback.start_price,
                     pullback.high_price,
                     pullback.retracement_low_price]
-
-        ret_data.append([torch.tensor(features), torch.tensor(np.eye(2)[pullback.label.value])])
+        # ret_data.append([features, np.eye(2)[pullback.label.value]])
+        ret_data.append([features, pullback.label.value])
 
         if pullback.label == LabelPullback.FAIL:
             fail_pullback += 1
@@ -55,11 +55,15 @@ def prepare_data(data_unprocess):
     return ret_data
 
 
-def ohlc_volume(x):
-    if len(x):
-        ohlc = {"open": x["open"][0], "high": max(x["high"]), "low": min(x["low"]), "close": x["close"][-1],
-                "volume": sum(x["volume"])}
-        return pd.Series(ohlc)
+# A utility method to create a tf.data dataset from a Pandas Dataframe
+def df_to_dataset(data_frame, shuffle=True, batch_size=32):
+    data_frame = data_frame.copy()
+    ds = tf.data.Dataset.from_tensor_slices(
+        (pd.DataFrame(data=data_frame).iloc[:, 0], pd.DataFrame(data=data_frame).iloc[:, 1]))
+    if shuffle:
+        ds = ds.shuffle(buffer_size=len(data_frame))
+    ds = ds.batch(batch_size)
+    return ds
 
 
 dataManager = DataManager("./data/DukascopyEurUsd.db")
@@ -69,67 +73,28 @@ pullbackExtractor = PullbackExtractor()
 data_bid = dataManager.retrieve_tick()['bid'].resample('15Min').ohlc()
 data_volume = dataManager.retrieve_tick()['bidVolume'].resample('15Min').agg({'bidVolume': 'sum'})
 
-# agg({'open': 'first', 'high': 'max', 'low': 'min', 'close': 'last', 'askVolume': 'sum'})
-# data = dataFrame['ask'].resample('15Min').ohlc()
-
 # Extract pullback pattern
 extractedData = pullbackExtractor.extract(data_bid, data_volume)
+print("Number of extracted pullback: " + str(len(extractedData)))
 prepared_data = prepare_data(extractedData)
+
 training_data = prepared_data[0:(len(prepared_data) * 2) // 3]
 testing_data = prepared_data[(len(prepared_data) * 2) // 3:len(prepared_data)]
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+batch_size = 2  # A small batch sized is used for demonstration purposes
+train_dataset = df_to_dataset(training_data, batch_size=batch_size)
+test_dataset = df_to_dataset(testing_data, shuffle=False, batch_size=batch_size)
 
+model = keras.Sequential([
+    # keras.layers.Flatten(input_shape=(10)),
+    keras.layers.Dense(4, activation="relu"),
+    keras.layers.Dense(2, activation="softmax")
+])
 
-class Net(nn.Module):
-    def __init__(self):
-        super().__init__()
-        # fc1 refer to fully connected; first layer
-        # 784 come from the flatten image of 28*28
-        self.fc1 = nn.Linear(10, 5)
-        self.fc2 = nn.Linear(5, 5)
-        self.fc3 = nn.Linear(5, 5)
-        # There is 2 classes, or 2 neuronnes
-        self.fc4 = nn.Linear(5, 2)
+model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
+for feature_batch, label_batch in train_dataset:
+    model.fit(feature_batch, label_batch, epochs=5)
 
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
-        x = self.fc4(x)
-
-        return F.log_softmax(x, dim=1)
-
-
-net = Net()
-optimizer = optim.Adam(net.parameters(), lr=0.001, )
-
-EPOCHS = 3
-
-for EPOCHS in range(EPOCHS):
-    for data in training_data:
-        # data is a batch of featuresets and labels
-        X, y = data
-        net.zero_grad()
-        output = net(X.view(-1, 9))
-        loss = F.nll_loss(output, y)
-        loss.backward()
-        optimizer.step()
-    print(loss)
-
-correct = 0
-total = 0
-
-# Calculate accuracy
-with torch.no_grad():
-    for data in testing_data:
-        X, y = data
-        output = net(X.view(-1, 9))
-        for idx, i in enumerate(output):
-            if torch.argmax(i) == y[idx]:
-                correct += 1
-            total += 1
-print("Accuracy: ", round(correct / total, 3))
-# print(torch.argmax(net(X[1].view(-1,784))[0]))
+for feature_batch, label_batch in train_dataset:
+    test_loss, test_acc = model.evaluate(feature_batch, label_batch)
+    print("Tested Acc: ", test_acc)
