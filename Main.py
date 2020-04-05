@@ -1,5 +1,3 @@
-import numpy as np
-import plotly.graph_objects as go
 import tensorflow as tf
 from tensorflow import keras
 from PullbackExtractor import *
@@ -70,8 +68,9 @@ dataManager = DataManager("./data/DukascopyEurUsd.db")
 pullbackExtractor = PullbackExtractor()
 
 # Retrieve data
-data_bid = dataManager.retrieve_tick()['bid'].resample('15Min').ohlc()
-data_volume = dataManager.retrieve_tick()['bidVolume'].resample('15Min').agg({'bidVolume': 'sum'})
+raw_data = dataManager.retrieve_tick_between("2019-01-01", "2019-01-15")
+data_bid = raw_data.copy()['bid'].resample('15Min').ohlc()
+data_volume = raw_data.copy()['bidVolume'].resample('15Min').agg({'bidVolume': 'sum'})
 
 # Extract pullback pattern
 extractedData = pullbackExtractor.extract(data_bid, data_volume)
@@ -81,7 +80,7 @@ prepared_data = prepare_data(extractedData)
 training_data = prepared_data[0:(len(prepared_data) * 2) // 3]
 testing_data = prepared_data[(len(prepared_data) * 2) // 3:len(prepared_data)]
 
-batch_size = 2  # A small batch sized is used for demonstration purposes
+batch_size = 20  # A small batch sized is used for demonstration purposes
 train_dataset = df_to_dataset(training_data, batch_size=batch_size)
 test_dataset = df_to_dataset(testing_data, shuffle=False, batch_size=batch_size)
 

@@ -10,7 +10,9 @@ class DataManager:
                                                   detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
         self.databaseCursor = self.databaseConnection.cursor()
 
-    def retrieve_tick(self):
-        sql_query_get_tick = 'SELECT * FROM ticks WHERE time > "2019-01-01" AND time < "2019-01-31"'
+    def retrieve_tick_between(self, date_start, date_end):
+        # sql_query_get_tick = 'SELECT * FROM ticks WHERE time > "2019-01-01" AND time < "2019-01-15"'
+        sql_query_get_tick = 'SELECT * FROM ticks WHERE time > "' + date_start + '"  AND time < "' + date_end + '"'
+
         return pd.read_sql_query(sql_query_get_tick, self.databaseConnection,
                                  parse_dates={'time': DataManager.DATE_FORMAT}, index_col='time')
