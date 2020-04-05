@@ -22,9 +22,6 @@ def prepare_data(data_unprocess):
         else:
             total_number_of_fail_pullback += 1
 
-    # total_number_of_successful_pullback = sum(1 for t in data_unprocess if t.label == LabelPullback.SUCCESSFUL)
-    # total_number_of_fail_pullback = sum(1 for t in data_unprocess if t.label == LabelPullback.FAIL)
-
     number_of_item_to_retrieve = min(total_number_of_successful_pullback, total_number_of_fail_pullback)
     ret_data = []
     fail_pullback = 0
