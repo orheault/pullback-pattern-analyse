@@ -11,7 +11,6 @@ class DataManager:
         self.databaseCursor = self.databaseConnection.cursor()
 
     def retrieve_tick_between(self, date_start, date_end):
-        # sql_query_get_tick = 'SELECT * FROM ticks WHERE time > "2019-01-01" AND time < "2019-01-15"'
         sql_query_get_tick = 'SELECT * FROM ticks WHERE time > "' + date_start + '"  AND time < "' + date_end + '"'
 
         return pd.read_sql_query(sql_query_get_tick, self.databaseConnection,

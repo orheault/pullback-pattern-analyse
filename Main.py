@@ -93,6 +93,7 @@ raw_data = dataManager.retrieve_tick_between("2019-01-01", "2019-02-15")
 data_bid = raw_data.copy()['bid'].resample('5Min').ohlc()
 data_volume = raw_data.copy()['bidVolume'].resample('5Min').agg({'bidVolume': 'sum'})
 
+# pd.DataFrame(data=data_volume).sort_values()
 # Extract pullback pattern
 print("Extract pullback pattern")
 extractedData = pd.DataFrame(data=pullbackExtractor.extract(data_bid, data_volume))
@@ -125,8 +126,8 @@ model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=
 
 print("Fit data")
 for feature_batch, label_batch in train_dataset:
-    model.fit(feature_batch, label_batch, epochs=5)
+    model.fit(feature_batch, label_batch, epochs=10)
 
 print("Evaluate data")
-for feature_batch, label_batch in train_dataset:
+for feature_batch, label_batch in test_dataset:
     test_loss, test_acc = model.evaluate(feature_batch, label_batch)

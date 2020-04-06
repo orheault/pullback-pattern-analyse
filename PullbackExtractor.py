@@ -1,6 +1,7 @@
 from LabelPullback import LabelPullback
 import numpy as np
 from Pullback import Pullback
+from ThickInformation import ThickInformation
 
 
 class PullbackExtractor:
@@ -169,6 +170,32 @@ class PullbackExtractor:
                 pullback_data_bid.iloc[index_retracement_end - index_retracement_start]["low"])
             pullback.set_start_price(pullback_data_bid.iloc[0]["low"])
             pullback.set_high_price(pullback_data_bid.iloc[index_bull_sequence_end - index_retracement_start]['high'])
+
+            pullback = self.normalize_pullback(pullback)
             pullback_datas.append(pullback)
 
         return pullback_datas
+
+    def normalize_pullback(self, pullback):
+        # y = (x - min) / (max - min)
+        pullback.retracement_low_price = self.normalize_price(pullback.retracement_low_price)
+        pullback.high_price = self.normalize_price(pullback.high_price)
+        pullback.start_price = self.normalize_price(pullback.start_price)
+        pullback.retracement_volume = self.normalize_volume(pullback.retracement_volume)
+        pullback.ohlc_retracement_size = self.normalize_volume(pullback.ohlc_retracement_size)
+        pullback.bullish_volume = self.normalize_volume(pullback.bullish_volume)
+        pullback.ohlc_bullish_size = self.normalize_volume(pullback.ohlc_bullish_size)
+        pullback.total_volume = self.normalize_volume(pullback.total_volume)
+        pullback.ohlc_total_size = self.normalize_volume(pullback.ohlc_total_size)
+
+        return pullback
+
+    @staticmethod
+    def normalize_volume(price):
+        return (price - ThickInformation.min_volume) / (
+                ThickInformation.max_volume - ThickInformation.min_volume)
+
+    @staticmethod
+    def normalize_price(price):
+        return (price - ThickInformation.min_price) / (
+                ThickInformation.max_price - ThickInformation.min_price)
