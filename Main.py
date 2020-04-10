@@ -89,23 +89,27 @@ pullbackExtractor = PullbackExtractor()
 
 # Retrieve data
 print("Retrieve data")
-raw_data = dataManager.retrieve_tick_between("2019-01-01", "2019-02-15")
+raw_data = dataManager.retrieve_tick_between("2019-01-01", "2019-06-15")
 data_bid = raw_data.copy()['bid'].resample('5Min').ohlc()
 data_volume = raw_data.copy()['bidVolume'].resample('5Min').agg({'bidVolume': 'sum'})
 
-# pd.DataFrame(data=data_volume).sort_values()
 # Extract pullback pattern
 print("Extract pullback pattern")
+# TODO NORMALIZE SIZE
 extractedData = pd.DataFrame(data=pullbackExtractor.extract(data_bid, data_volume))
 print("Number of extracted pullback: " + str(len(extractedData)))
 
 # Shuffle data
 print("Shuffle data")
-df = shuffle(extractedData)
+print("Dataframe before shuffle")
+print(extractedData.head())
+df = shuffle(shuffle(shuffle(shuffle(extractedData))))
+print("Dataframe after shuffle")
+print(df.head())
 
 # Retrieve features from pullback object
 print("Retrieve features from pullback object")
-prepared_data = prepare_data(extractedData)
+prepared_data = prepare_data(df)
 
 # Split training and test data
 print("Split training and test data")

@@ -105,7 +105,7 @@ class PullbackExtractor:
                 index_bull_sequence_start = index_bull_sequence
                 index_bull_sequence -= 1
 
-            if index_bull_sequence_start == -1:
+            if index_bull_sequence_start < 0:
                 continue
 
             # Retracement does not exceed 100% of pullback
@@ -182,11 +182,8 @@ class PullbackExtractor:
         pullback.high_price = self.normalize_price(pullback.high_price)
         pullback.start_price = self.normalize_price(pullback.start_price)
         pullback.retracement_volume = self.normalize_volume(pullback.retracement_volume)
-        pullback.ohlc_retracement_size = self.normalize_volume(pullback.ohlc_retracement_size)
         pullback.bullish_volume = self.normalize_volume(pullback.bullish_volume)
-        pullback.ohlc_bullish_size = self.normalize_volume(pullback.ohlc_bullish_size)
         pullback.total_volume = self.normalize_volume(pullback.total_volume)
-        pullback.ohlc_total_size = self.normalize_volume(pullback.ohlc_total_size)
 
         return pullback
 
