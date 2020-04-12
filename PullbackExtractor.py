@@ -1,11 +1,11 @@
 from LabelPullback import LabelPullback
-import numpy as np
 from Pullback import Pullback
-from ThickInformation import ThickInformation
+import plotly.graph_objects as go
 
 
 class PullbackExtractor:
-    def extract(self, data_bid, data_volume):
+    @staticmethod
+    def extract(data_bid):
         # SEARCH FOR PULLBACK PATTERN
         # THIS ALGO SEARCH BACKWARD, A BIT WEIRD
         # Time move forward, for each candle, look backward if pattern is form.
@@ -20,6 +20,7 @@ class PullbackExtractor:
             current_candle = row
             if i - 1 < 0:
                 continue
+
             previous_candle = data_bid.iloc[i - 1]
 
             # 1: Current candle positive
@@ -39,22 +40,22 @@ class PullbackExtractor:
 
             # 4; Previous candle make a local low.
             # Compare with the candle before since I just check if the next candle id higher
-            previous_candle_local_low = previous_candle['open'] <= data_bid.iloc[i - 2]['close']
+            previous_candle_local_low = previous_candle['open'] <= data_bid.iloc[i - 2]['close'] and previous_candle[
+                'close'] <= data_bid.iloc[i - 2]['close']
             if not previous_candle_local_low:
                 continue
 
             # 5: Sequence of previous candle negative
             index_retracement_end = i - 1
             index_retracement_start = -1
-            index_retracement = index_retracement_end - 1
-            is_searching_retracement = True
-            while is_searching_retracement:
+            index_current_retracement = index_retracement_end - 1
+
+            while True:
                 # Get previous candle
-                retracement_candle = data_bid.iloc[index_retracement]
+                retracement_candle = data_bid.iloc[index_current_retracement]
                 # Check if candle is negative
                 retracement_candle_is_negative = retracement_candle['open'] - retracement_candle['close'] > 0
                 if not retracement_candle_is_negative:
-                    # todo can i transform the while with a while True and delete the isSearchingRetracement variable???
                     break
                 # And higher then the next candle
                 next_retracement_candle = data_bid.iloc[index_retracement_end + 1]
@@ -63,8 +64,8 @@ class PullbackExtractor:
                 if not retracement_candle_is_higher_than_next_candle:
                     break
 
-                index_retracement_start = index_retracement
-                index_retracement -= 1
+                index_retracement_start = index_current_retracement
+                index_current_retracement -= 1
 
             if index_retracement_start == -1:
                 continue
@@ -113,86 +114,84 @@ class PullbackExtractor:
                 continue
 
             # 9 - Breakout define by target price higher than the pullback high
-            index_breakout = real_i
-            candle_breakout_is_greater_than_high_pullback = False
+            # index_breakout = real_i
+            # label = LabelPullback.FAIL
+            # while True:
+            #    candle_breakout = data_bid.iloc[index_breakout]
+            #    if candle_breakout['open'] - candle_breakout['close'] > 0:
+            #        index_breakout -= 1
+            #        break
+
+            #    if candle_breakout['high'] >= data_bid.iloc[index_retracement_start]['high']:
+            #        label = LabelPullback.SUCCESSFUL
+
+            #    index_breakout += 1
+
+            # 9 - pullback is a success when the candle breakout is more than 2 pip
+            index_breakout = real_i - 1
             label = LabelPullback.FAIL
-            while True:
-                candle_breakout = data_bid.iloc[index_breakout]
-                if candle_breakout['open'] - candle_breakout['close'] > 0:
-                    index_breakout -= 1
-                    break
-
-                candle_breakout_is_greater_than_high_pullback = candle_breakout['close'] >= \
-                                                                data_bid.iloc[index_retracement_start - 1]['close']
-                if candle_breakout_is_greater_than_high_pullback:
-                    label = LabelPullback.SUCCESSFUL
-
-                index_breakout += 1
+            if data_bid.iloc[index_breakout]['high'] - data_bid.iloc[index_retracement_end]['close'] > 0.0002:
+                label = LabelPullback.SUCCESSFUL
 
             # Found a pullback pattern!
-            pullback_data_bid = data_bid[index_bull_sequence_start:index_retracement_end + 3]
-            pullback_data_volume = data_volume[index_bull_sequence_start:index_retracement_end + 3]
+            pullback_data_bid = data_bid[index_bull_sequence_start:index_retracement_end]
 
             pullback = Pullback()
-            pullback.set_label(label)
-            pullback.set_ohlc_total_size(pullback_data_bid.size)
+            pullback.label = label
+            pullback.ohlc_total_size = pullback_data_bid.size
 
             bid_volume_sum = 0
-            if pullback_data_volume.size > 0:
-                bid_volume_sum = pullback_data_volume["bidVolume"].sum()
-            pullback.set_total_volume(bid_volume_sum)
+            if pullback_data_bid.size > 0:
+                bid_volume_sum = pullback_data_bid["bidVolume"].sum()
+            pullback.total_volume = bid_volume_sum
 
-            pullback.set_ohlc_bullish_size(index_bull_sequence_end - index_bull_sequence_start)
-
-            bullish_volume_data = pullback_data_volume[0:index_bull_sequence_end - index_bull_sequence_start]
-            if bullish_volume_data.size > 0:
-                bullish_volume_value = bullish_volume_data["bidVolume"].sum()
+            if index_bull_sequence_end - index_bull_sequence_start == 0:
+                pullback.bullish_ohlc_size = 1
             else:
-                bullish_volume_value = 0
-            pullback.set_bullish_volume(bullish_volume_value)
+                pullback.bullish_ohlc_size = index_bull_sequence_end - index_bull_sequence_start
 
-            pullback.set_ohlc_retracement_size(pullback_data_bid[index_retracement_start:index_retracement_end].size)
+            bullish_volume_data_index = index_bull_sequence_end - index_bull_sequence_start
+            if bullish_volume_data_index == 0:
+                bullish_volume_data_index = 1
+            bullish_volume_data = pullback_data_bid[0:bullish_volume_data_index]
+            pullback.bullish_volume = bullish_volume_data["bidVolume"].sum()
+
+            retracement_ohlc_size = index_retracement_end - index_retracement_start
+            pullback.retracement_ohlc_size = retracement_ohlc_size
 
             retracement_volume = 0
-            if pullback_data_volume[index_retracement_start - index_bull_sequence_start:index_retracement_end].size > 0:
+            if pullback_data_bid[index_retracement_start - index_bull_sequence_start:index_retracement_end].size > 0:
                 retracement_volume = \
-                    pullback_data_volume[index_retracement_start - index_bull_sequence_start:index_retracement_end][
+                    pullback_data_bid[index_retracement_start - index_bull_sequence_start:index_retracement_end][
                         "bidVolume"].sum()
 
-            pullback.set_retracement_volume(retracement_volume)
+            pullback.retracement_volume = retracement_volume
 
-            pullback.set_retracement_percentage(abs(
+            pullback.retracement_percentage = abs(
                 (pullback_data_bid.iloc[0]["high"] -
                  pullback_data_bid.iloc[index_retracement_end - index_retracement_start]["high"]) / (
                         pullback_data_bid.iloc[index_bull_sequence_end - index_retracement_start]["high"] -
-                        pullback_data_bid.iloc[0]["low"])))
-            pullback.set_retracement_low_price(
-                pullback_data_bid.iloc[index_retracement_end - index_retracement_start]["low"])
-            pullback.set_start_price(pullback_data_bid.iloc[0]["low"])
-            pullback.set_high_price(pullback_data_bid.iloc[index_bull_sequence_end - index_retracement_start]['high'])
+                        pullback_data_bid.iloc[0]["low"]))
+            pullback.retracement_low_price = pullback_data_bid.iloc[index_retracement_end - index_retracement_start][
+                "low"]
+            pullback.start_price = pullback_data_bid.iloc[0]["low"]
+            pullback.high_price = pullback_data_bid.iloc[index_bull_sequence_end - index_retracement_start]['high']
 
-            pullback = self.normalize_pullback(pullback)
+            pullback.index_start = index_bull_sequence_start
+            pullback.index_end = index_retracement_end + 1
+            pullback.retracement_date_start = data_bid.index[index_retracement_start]
             pullback_datas.append(pullback)
 
+            # data_to_shows = data_bid[index_bull_sequence_start:index_breakout + 1]
+            # title = pullback.label.name + ": Retracement Date Start: " + pullback.retracement_date_start.strftime(
+            #     '%Y-%m-%d %H:%M:%S') + " Candle breakout date: " + data_bid.index[index_breakout].strftime(
+            #    '%Y-%m-%d %H:%M:%S')
+            # go.Figure(data=[go.Candlestick(x=data_to_shows.axes[0],
+            #                                open=data_to_shows['open'],
+            #                              high=data_to_shows['high'],
+            #                              low=data_to_shows['low'],
+            #                              close=data_to_shows['close'], )]) \
+            #   .update_layout(title=title) \
+            #   .show()
+
         return pullback_datas
-
-    def normalize_pullback(self, pullback):
-        # y = (x - min) / (max - min)
-        pullback.retracement_low_price = self.normalize_price(pullback.retracement_low_price)
-        pullback.high_price = self.normalize_price(pullback.high_price)
-        pullback.start_price = self.normalize_price(pullback.start_price)
-        pullback.retracement_volume = self.normalize_volume(pullback.retracement_volume)
-        pullback.bullish_volume = self.normalize_volume(pullback.bullish_volume)
-        pullback.total_volume = self.normalize_volume(pullback.total_volume)
-
-        return pullback
-
-    @staticmethod
-    def normalize_volume(price):
-        return (price - ThickInformation.min_volume) / (
-                ThickInformation.max_volume - ThickInformation.min_volume)
-
-    @staticmethod
-    def normalize_price(price):
-        return (price - ThickInformation.min_price) / (
-                ThickInformation.max_price - ThickInformation.min_price)

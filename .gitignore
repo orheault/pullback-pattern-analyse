@@ -1,6 +1,7 @@
 MNIST/
 Saved\ to\ db/
-Ticks/
+resources/ticks
+resources/DukascopyEurUsd.db
 DukascopyEurUsd.db
 
 

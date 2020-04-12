@@ -3,3 +3,6 @@ pandas==1.0.3
 tensorflow==2.1.0
 tensorflow-gpu==2.1.0
 sklearn
+tqdm
+duka
+plotly==4.6.0
