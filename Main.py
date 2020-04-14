@@ -220,13 +220,6 @@ print("Convert training/test data to datasets")
 train_dataset = df_to_dataset(training_data, batch_size=10)
 test_dataset = df_to_dataset(testing_data, shuffle=False, batch_size=10)
 
-# model = keras.Sequential([
-#    keras.layers.Dense(10, activation="relu"),
-#    keras.layers.Dense(4, activation="relu"),
-#    keras.layers.Dense(2, activation="softmax")
-# ])
-# model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
-
 model = keras.Sequential()
 model.add(keras.layers.Dense(10, activation='relu', kernel_initializer='he_uniform'))
 model.add(keras.layers.Dense(4, activation='relu'))
@@ -239,7 +232,7 @@ model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
 # for feature_batch, label_batch in train_dataset:
 #    model.fit(feature_batch, label_batch, epochs=100)
 
-import plotly.graph_objects as go
+# import plotly.graph_objects as go
 
 # print("Evaluate data")
 # i = 0
@@ -258,7 +251,6 @@ import plotly.graph_objects as go
 #                               close=data_to_shows['close'], )]) \
 #    .update_layout(title=title).show()
 #    i += 1
-# tf.saved_model.save(model, "./save_model/5_min/")
 
 feature_train_batch = tf.constant(training_data[0])
 label_train_batch = tf.constant(training_data[1])
@@ -266,7 +258,7 @@ feature_test_batch = tf.constant(testing_data[0])
 label_test_batch = tf.constant(testing_data[1])
 
 # fit model
-history = model.fit(feature_train_batch, label_train_batch, validation_data=(feature_test_batch, label_test_batch), epochs=64, verbose=0, batch_size=64)
+history = model.fit(feature_train_batch, label_train_batch, validation_data=(feature_test_batch, label_test_batch), epochs=85, verbose=0, batch_size=100, shuffle=True)
 
 # evaluate the model
 _, train_acc = model.evaluate(feature_train_batch, label_train_batch, verbose=0)
@@ -288,3 +280,10 @@ pyplot.plot(history.history['accuracy'], label='train')
 pyplot.plot(history.history['val_accuracy'], label='test')
 pyplot.legend()
 pyplot.show()
+
+
+tf.saved_model.save(model, "./save_model/5_min/")
+
+
+
+
